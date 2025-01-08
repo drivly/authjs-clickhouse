@@ -3,8 +3,6 @@ import { type ClickHouseClient, createClient } from '@clickhouse/client-web'
 import ClickhouseAdapter, { parseDateTimeFields } from '../src'
 import { runBasicTests } from './adapter'
 
-const POOL_SIZE = 20
-
 const client = createClient({
   url: `http://localhost:${process.env.CLICKHOUSE_PORT || '28123'}`,
   database: 'adapter_clickhouse_test',
