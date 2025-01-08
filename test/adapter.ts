@@ -4,7 +4,7 @@ import ClickhouseAdapter from '../src'
 import { createClient } from '@clickhouse/client-web'
 
 const client = createClient({
-  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '18123'}`,
+  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '28123'}`,
   database: 'default',
 })
 
@@ -348,6 +348,7 @@ export async function runBasicTests(options: TestOptions) {
     expect(dbAccount).toBeNull()
   })
 
+  // @ts-ignore - Test function type mismatch
   maybeTest('deleteUser', async () => {
     let dbUser = await db.user(user.id)
     expect(dbUser).toEqual(user)
@@ -373,7 +374,7 @@ export async function runBasicTests(options: TestOptions) {
     // Account should not exist after user is deleted
     expect(dbAccount).toBeNull()
   })
-
+  // @ts-ignore - Test function type mismatch
   maybeTest('getAccount', async () => {
     // Setup
     const providerAccountId = randomUUID()
@@ -406,6 +407,7 @@ export async function runBasicTests(options: TestOptions) {
     })
     expect(dbAccount).toMatchObject(validAccount || {})
   })
+  // @ts-ignore - Test function type mismatch
   maybeTest('createAuthenticator', async () => {
     // Setup
     const credentialID = randomUUID()
@@ -439,6 +441,7 @@ export async function runBasicTests(options: TestOptions) {
     const dbAuthenticator = db.authenticator ? await db.authenticator(credentialID) : undefined
     expect(dbAuthenticator).toMatchObject(newAuthenticator)
   })
+  // @ts-ignore - Test function type mismatch
   maybeTest('getAuthenticator', async () => {
     // Setup
     const credentialID = randomUUID()
@@ -473,6 +476,7 @@ export async function runBasicTests(options: TestOptions) {
     const dbAuthenticator = db.authenticator ? await db.authenticator(credentialID) : undefined
     expect(dbAuthenticator).toMatchObject(validAuthenticator || {})
   })
+  // @ts-ignore - Test function type mismatch
   maybeTest('listAuthenticatorsByUserId', async () => {
     // Setup
     const user1 = await adapter.createUser({
@@ -549,6 +553,7 @@ export async function runBasicTests(options: TestOptions) {
     expect(authenticators2).not.toBeNull()
     expect([authenticator3]).toMatchObject(expect.arrayContaining(authenticators2 || []))
   })
+  // @ts-ignore - Test function type mismatch
   maybeTest('updateAuthenticatorCounter', async () => {
     // Setup
     const credentialID = randomUUID()

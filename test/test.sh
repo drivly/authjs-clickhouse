@@ -2,7 +2,7 @@
 
 # Start ClickHouse container
 echo "Starting ClickHouse container..."
-container_id=$(docker run -d --name authjs-clickhouse-test -p 18123:8123 -p 19000:9000 clickhouse/clickhouse-server:latest)
+container_id=$(docker run -d --name authjs-clickhouse-test -p 28123:8123 -p 29000:9000 clickhouse/clickhouse-server:latest)
 
 # Wait for ClickHouse to initialize
 echo "Waiting for ClickHouse to initialize..."
@@ -31,7 +31,7 @@ docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickh
 
 # Run tests
 echo "Running tests..."
-CLICKHOUSE_PORT=18123 vitest run
+CLICKHOUSE_PORT=28123 vitest run
 
 # Check test result
 test_result=$?

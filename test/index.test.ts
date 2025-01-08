@@ -6,7 +6,7 @@ import { runBasicTests } from './adapter'
 const POOL_SIZE = 20
 
 const client = createClient({
-  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '18123'}`,
+  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '28123'}`,
   database: 'adapter_clickhouse_test',
 }) satisfies ClickHouseClient
 
