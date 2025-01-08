@@ -1,5 +1,14 @@
 import type { Adapter } from '@auth/core/adapters'
 import { afterAll, beforeAll, expect, test } from 'vitest'
+import ClickhouseAdapter from '../src'
+import { createClient } from '@clickhouse/client-web'
+
+const client = createClient({
+  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '18123'}`,
+  database: 'default',
+})
+
+const adapter = ClickhouseAdapter(client)
 
 // Replace crypto imports with Web Crypto API utilities
 export function randomUUID(): string {

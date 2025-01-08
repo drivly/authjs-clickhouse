@@ -1,75 +1,50 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status
-set -o pipefail  # Prevent errors in a pipeline from being masked
-
-CONTAINER_NAME=authjs-clickhouse-test
-CLICKHOUSE_DB=adapter_clickhouse_test
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_PORT=8123
-
-# Function to clean up existing container
-cleanup() {
-  if [ "$(docker ps -a -q -f name=^/${CONTAINER_NAME}$)" ]; then
-    echo "Removing existing container ${CONTAINER_NAME}..."
-    docker rm -f "${CONTAINER_NAME}"
-  fi
-}
-
-# Ensure cleanup happens on script exit
-trap cleanup EXIT
-
-# Start ClickHouse Docker container
+# Start ClickHouse container
 echo "Starting ClickHouse container..."
-docker run -d --rm \
-  --name "${CONTAINER_NAME}" \
-  -e CLICKHOUSE_USER=default \
-  -e CLICKHOUSE_PASSWORD= \
-  -p "${CLICKHOUSE_PORT}":8123 \
-  --ulimit nofile=262144:262144 \
-  clickhouse/clickhouse-server:latest
+container_id=$(docker run -d --name authjs-clickhouse-test -p 18123:8123 -p 19000:9000 clickhouse/clickhouse-server:latest)
 
+# Wait for ClickHouse to initialize
 echo "Waiting for ClickHouse to initialize..."
-
-# Wait until ClickHouse is ready by polling the /ping endpoint
 for i in {1..30}; do
-  if curl -s "http://${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/ping" | grep -q "Ok"; then
+  echo "Waiting for ClickHouse to become ready... ($i/30)"
+  if docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1; then
     echo "ClickHouse is ready!"
     break
   fi
-  echo "Waiting for ClickHouse to become ready... ($i/30)"
+  if [ $i -eq 30 ]; then
+    echo "ClickHouse failed to initialize"
+    exit 1
+  fi
   sleep 1
 done
 
-# Verify ClickHouse is ready
-if ! curl -s "http://${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/ping" | grep -q "Ok"; then
-  echo "ClickHouse did not become ready in time."
-  exit 1
-fi
-
+# Apply schema
 echo "Applying schema..."
-# Copy the schema file into the container
-docker cp ./test/schema.clickhouse.sql "${CONTAINER_NAME}":/tmp/schema.clickhouse.sql
+docker cp test/schema.clickhouse.sql authjs-clickhouse-test:/tmp/schema.clickhouse.sql
+docker exec authjs-clickhouse-test clickhouse-client --multiquery --queries-file /tmp/schema.clickhouse.sql
 
-# Execute the schema script inside the container
-docker exec -i "${CONTAINER_NAME}" sh -c "clickhouse-client --multiquery < /tmp/schema.clickhouse.sql"
-
-# Optional: Verify tables were created
+# Verify tables
 echo "Verifying tables in ClickHouse..."
-docker exec -i "${CONTAINER_NAME}" clickhouse-client --database="${CLICKHOUSE_DB}" --query="SHOW TABLES;"
+docker exec authjs-clickhouse-test clickhouse-client --query "SHOW DATABASES"
+docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 
-# Export environment variables for the adapter to use
-export CLICKHOUSE_URL="http://${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}"
-export CLICKHOUSE_USER="default"
-export CLICKHOUSE_PASSWORD=""
-export CLICKHOUSE_DB="adapter_clickhouse_test"
-
+# Run tests
 echo "Running tests..."
-# Run Vitest tests using npx to ensure the local version is used
-if npx vitest run -c ../authjs-clickhouse/vitest.config.ts; then
+CLICKHOUSE_PORT=18123 vitest run
+
+# Check test result
+test_result=$?
+
+echo ""
+if [ $test_result -eq 0 ]; then
   echo "Tests passed!"
-  exit 0
 else
   echo "Tests failed!"
-  exit 1
 fi
+
+# Cleanup
+echo "Removing existing container authjs-clickhouse-test..."
+docker rm -f authjs-clickhouse-test
+
+exit $test_result

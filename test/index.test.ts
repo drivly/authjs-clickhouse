@@ -6,11 +6,8 @@ import { runBasicTests } from './adapter'
 const POOL_SIZE = 20
 
 const client = createClient({
-  url: process.env.CLICKHOUSE_URL || 'http://localhost:8123',
-  username: process.env.CLICKHOUSE_USER || 'default',
-  password: process.env.CLICKHOUSE_PASSWORD || '',
-  database: process.env.CLICKHOUSE_DB || 'adapter_clickhouse_test',
-  max_open_connections: POOL_SIZE,
+  url: `http://localhost:${process.env.CLICKHOUSE_PORT || '18123'}`,
+  database: 'adapter_clickhouse_test',
 }) satisfies ClickHouseClient
 
 function dbHelpers() {

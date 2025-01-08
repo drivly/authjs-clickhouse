@@ -13,8 +13,8 @@ jobs:
       clickhouse:
         image: clickhouse/clickhouse-server:latest
         ports:
-          - 8123:8123
-          - 9000:9000
+          - 18123:8123
+          - 19000:9000
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +47,8 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+        env:
+          CLICKHOUSE_PORT: 18123
 
       - name: Build
         run: pnpm build
