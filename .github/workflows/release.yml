@@ -2,7 +2,7 @@ name: Release
 
 on:
   workflow_run:
-    workflows: ["CI"]  # Ensure this matches the name of your CI workflow
+    workflows: ['CI'] # Ensure this matches the name of your CI workflow
     types:
       - completed
 
@@ -12,27 +12,17 @@ jobs:
       ${{ github.ref == 'refs/heads/main' }} &&
       ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Ensure all history is fetched for Changesets
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-          registry-url: 'https://registry.npmjs.org/'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
         with:
           version: 8
-          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'pnpm'
 
-      - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
 
       - name: Configure npm for @drivly scope
         run: |
@@ -42,11 +32,10 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Release Pull Request or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
           publish: pnpm release
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

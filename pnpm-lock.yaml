@@ -8,6 +8,9 @@ dependencies:
   '@auth/core':
     specifier: ^0.37.4
     version: 0.37.4
+  '@drivly/authjs-clickhouse':
+    specifier: 'link:'
+    version: 'link:'
   unplugin-swc:
     specifier: ^1.5.1
     version: 1.5.1(@swc/core@1.10.6)
