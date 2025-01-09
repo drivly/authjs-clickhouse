@@ -19,7 +19,6 @@ apply_schema() {
   fi
 }
 
-# Determine if running in GitHub Actions
 if [ -z "$GITHUB_ACTIONS" ]; then
   # Clean up any existing container
   echo "Cleaning up any existing container..."
@@ -43,22 +42,30 @@ if [ -z "$GITHUB_ACTIONS" ]; then
     fi
     sleep 1
   done
-else
-  # Running in GitHub Actions, ClickHouse service is already started
-  echo "Waiting for ClickHouse service to initialize..."
-  for i in {1..30}; do
-    echo "Waiting for ClickHouse to become ready... ($i/30)"
+fi
+
+# Wait for ClickHouse to be ready (both local and CI)
+echo "Waiting for ClickHouse to be ready..."
+for i in {1..30}; do
+  if [ -z "$GITHUB_ACTIONS" ]; then
+    if docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1; then
+      echo "ClickHouse is ready!"
+      break
+    fi
+  else
     if clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query "SELECT 1" >/dev/null 2>&1; then
       echo "ClickHouse is ready!"
       break
     fi
-    if [ $i -eq 30 ]; then
-      echo "ClickHouse service failed to initialize"
-      exit 1
-    fi
-    sleep 1
-  done
-fi
+  fi
+  
+  if [ $i -eq 30 ]; then
+    echo "ClickHouse failed to initialize"
+    exit 1
+  fi
+  echo "Waiting for ClickHouse to become ready... ($i/30)"
+  sleep 1
+done
 
 # Apply schema
 apply_schema "test/schema.clickhouse.sql"
