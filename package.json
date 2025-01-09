@@ -1,6 +1,6 @@
 {
   "name": "@drivly/authjs-clickhouse",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Clickhouse adapter for next-auth.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
