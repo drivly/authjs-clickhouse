@@ -16,10 +16,11 @@ jobs:
           - 28123:8123
           - 29000:9000
         options: >-
-          --health-cmd="curl -s http://localhost:8123/ping | grep Ok"
+          --health-cmd="wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+          --health-start-period=30s
 
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +50,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Wait for ClickHouse
+        run: |
+          timeout 30s bash -c 'until wget --no-verbose --tries=1 --spider http://localhost:28123/ping; do sleep 1; done'
 
       - name: Initialize ClickHouse Schema
         run: |
