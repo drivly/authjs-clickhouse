@@ -28,7 +28,6 @@ jobs:
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
@@ -40,7 +39,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
-          pnpm install --no-frozen-lockfile
+          pnpm install
 
       - name: Install ClickHouse client
         run: |
