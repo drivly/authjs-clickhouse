@@ -57,6 +57,7 @@
     "@clickhouse/client-web": "^1.10.0"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
     "@changesets/cli": "^2.27.11",
     "@clickhouse/client-web": "^1.10.0",
     "@preact/preset-vite": "^2.8.1",

@@ -9,6 +9,7 @@ coverage
 # Production
 dist
 build
+.npmrc
 
 # Misc
 .DS_Store
