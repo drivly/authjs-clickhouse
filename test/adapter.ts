@@ -1,7 +1,6 @@
 import type { Adapter } from '@auth/core/adapters'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 
-// Replace crypto imports with Web Crypto API utilities
 export function randomUUID(): string {
   return crypto.randomUUID()
 }
