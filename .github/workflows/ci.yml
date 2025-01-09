@@ -57,8 +57,64 @@ jobs:
 
       - name: Initialize ClickHouse Schema
         run: |
-          curl -X POST http://localhost:28123 \
-            --data-binary @test/schema.clickhouse.sql
+          # Create database
+          curl -X POST http://localhost:28123 --data-binary "CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+
+          # Create verificationToken table
+          curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
+          CREATE TABLE IF NOT EXISTS verificationToken
+          (
+            identifier String,
+            expires DateTime64(3),
+            token String
+          )
+          ENGINE = MergeTree
+          ORDER BY (identifier, token)"
+
+          # Create accounts table
+          curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
+          CREATE TABLE IF NOT EXISTS accounts
+          (
+            id String,
+            userId String,
+            provider String,
+            type String,
+            providerAccountId String,
+            access_token String,
+            expires_at Int64 DEFAULT 0,
+            refresh_token String,
+            id_token String,
+            scope String,
+            session_state String,
+            token_type String
+          )
+          ENGINE = MergeTree
+          ORDER BY id"
+
+          # Create sessions table
+          curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
+          CREATE TABLE IF NOT EXISTS sessions
+          (
+            id String,
+            userId String,
+            expires DateTime64(3),
+            sessionToken String
+          )
+          ENGINE = MergeTree
+          ORDER BY id"
+
+          # Create users table
+          curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
+          CREATE TABLE IF NOT EXISTS users
+          (
+            id String,
+            name String,
+            email String,
+            emailVerified Nullable(DateTime64(3)),
+            image Nullable(String)
+          )
+          ENGINE = MergeTree
+          ORDER BY id"
 
       - name: Run tests
         run: pnpm test
