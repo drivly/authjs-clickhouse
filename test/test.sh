@@ -3,13 +3,16 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 set -o pipefail  # Prevent errors in a pipeline from being masked
 
+# Echo the value of GITHUB_ACTIONS for debugging
+echo "GITHUB_ACTIONS is set to: $GITHUB_ACTIONS"
+
 # Define ClickHouse connection parameters
 CLICKHOUSE_HOST=localhost
 CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-28123}
 
 # Function to check if ClickHouse is ready
 check_clickhouse() {
-  if [ -z "$GITHUB_ACTIONS" ]; then
+  if [ "$GITHUB_ACTIONS" != "true" ]; then
     docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1
   else
     curl --silent --head http://localhost:${CLICKHOUSE_PORT}/ping | grep -q "200 OK"
@@ -20,19 +23,19 @@ check_clickhouse() {
 apply_schema() {
   local schema_file=$1
   echo "Applying schema..."
-  if [ -z "$GITHUB_ACTIONS" ]; then
+  if [ "$GITHUB_ACTIONS" != "true" ]; then
     docker cp "$schema_file" authjs-clickhouse-test:/tmp/schema.clickhouse.sql
     docker exec authjs-clickhouse-test clickhouse-client --multiquery --queries-file /tmp/schema.clickhouse.sql
   else
     # Create database first
-    curl -X POST http://localhost:${CLICKHOUSE_PORT} --data-binary "CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+    curl -X POST "http://localhost:${CLICKHOUSE_PORT}/?query=CREATE%20DATABASE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test"
     
     # Then apply schema to the database
-    curl -X POST http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary @"${schema_file}"
+    curl -X POST "http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test" --data-binary @"${schema_file}"
   fi
 }
 
-if [ -z "$GITHUB_ACTIONS" ]; then
+if [ "$GITHUB_ACTIONS" != "true" ]; then
   # Clean up any existing container
   echo "Cleaning up any existing container..."
   docker rm -f authjs-clickhouse-test 2>/dev/null || true
@@ -62,14 +65,14 @@ apply_schema "test/schema.clickhouse.sql"
 
 # Verify tables
 echo "Verifying tables in ClickHouse..."
-if [ -z "$GITHUB_ACTIONS" ]; then
+if [ "$GITHUB_ACTIONS" != "true" ]; then
   docker exec authjs-clickhouse-test clickhouse-client --query "SHOW DATABASES"
   docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 else
   # Use format=JSONEachRow for better output parsing
-  curl -s http://localhost:${CLICKHOUSE_PORT} --data-binary "SHOW DATABASES FORMAT JSONEachRow"
+  curl -s "http://localhost:${CLICKHOUSE_PORT}/?query=SHOW%20DATABASES%20FORMAT%20JSONEachRow"
   echo ""
-  curl -s http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary "SHOW TABLES FORMAT JSONEachRow"
+  curl -s "http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test?query=SHOW%20TABLES%20FORMAT%20JSONEachRow"
 fi
 
 # Run tests
@@ -87,7 +90,7 @@ else
 fi
 
 # Cleanup
-if [ -z "$GITHUB_ACTIONS" ]; then
+if [ "$GITHUB_ACTIONS" != "true" ]; then
   echo "Removing ClickHouse container authjs-clickhouse-test..."
   docker rm -f authjs-clickhouse-test
 fi
