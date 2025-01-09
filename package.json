@@ -68,12 +68,12 @@
     "dotenv": "^10.0.0",
     "tsup": "^8.3.5",
     "typescript": "5.5.4",
+    "unplugin-swc": "^1.5.1",
     "vite": "^6.0.7",
     "vitest": "2.1.8"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
-    "@drivly/authjs-clickhouse": "link:",
-    "unplugin-swc": "^1.5.1"
+    "@drivly/authjs-clickhouse": "link:"
   }
 }
