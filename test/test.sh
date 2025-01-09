@@ -8,14 +8,15 @@ echo "GITHUB_ACTIONS is set to: $GITHUB_ACTIONS"
 
 # Define ClickHouse connection parameters
 CLICKHOUSE_HOST=localhost
-CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-28123}
+CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_PORT:-28123}
+CLICKHOUSE_TCP_PORT=29000  # Native protocol port
 
 # Function to check if ClickHouse is ready
 check_clickhouse() {
   if [ "$GITHUB_ACTIONS" != "true" ]; then
     docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1
   else
-    curl --silent --head http://localhost:${CLICKHOUSE_PORT}/ping | grep -q "200 OK"
+    curl --silent --head http://localhost:${CLICKHOUSE_HTTP_PORT}/ping | grep -q "200 OK"
   fi
 }
 
@@ -29,10 +30,10 @@ apply_schema() {
   else
     # Use clickhouse-client to apply schema
     echo "Creating database adapter_clickhouse_test..."
-    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query="CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_TCP_PORT} --query="CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
 
     echo "Applying schema to adapter_clickhouse_test..."
-    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --database=adapter_clickhouse_test --multiquery < "${schema_file}"
+    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_TCP_PORT} --database=adapter_clickhouse_test --multiquery < "${schema_file}"
   fi
 }
 
@@ -71,7 +72,7 @@ if [ "$GITHUB_ACTIONS" != "true" ]; then
   docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 else
   # Use clickhouse-client to verify tables
-  clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --database=adapter_clickhouse_test --query="SHOW TABLES FORMAT JSONEachRow"
+  clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_TCP_PORT} --database=adapter_clickhouse_test --query="SHOW TABLES FORMAT JSONEachRow"
 fi
 
 # Run tests
