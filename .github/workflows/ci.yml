@@ -51,35 +51,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Wait for ClickHouse
+      - name: Install ClickHouse client
         run: |
-          timeout 30s bash -c 'until wget --no-verbose --tries=1 --spider http://localhost:28123/ping; do sleep 1; done'
-
-      - name: Initialize ClickHouse Schema
-        run: |
-          # Create database
-          curl -X POST "http://localhost:28123/?query=CREATE%20DATABASE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test"
-          sleep 1
-
-          # Create users table
-          curl -X POST "http://localhost:28123/?query=CREATE%20TABLE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test.users%20(id%20String%2C%20name%20String%2C%20email%20String%2C%20emailVerified%20Nullable(DateTime64(3))%2C%20image%20Nullable(String))%20ENGINE%20%3D%20MergeTree%20ORDER%20BY%20id"
-          sleep 1
-
-          # Create accounts table
-          curl -X POST "http://localhost:28123/?query=CREATE%20TABLE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test.accounts%20(id%20String%2C%20userId%20String%2C%20provider%20String%2C%20type%20String%2C%20providerAccountId%20String%2C%20access_token%20String%2C%20expires_at%20Int64%20DEFAULT%200%2C%20refresh_token%20String%2C%20id_token%20String%2C%20scope%20String%2C%20session_state%20String%2C%20token_type%20String)%20ENGINE%20%3D%20MergeTree%20ORDER%20BY%20id"
-          sleep 1
-
-          # Create sessions table
-          curl -X POST "http://localhost:28123/?query=CREATE%20TABLE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test.sessions%20(id%20String%2C%20userId%20String%2C%20expires%20DateTime64(3)%2C%20sessionToken%20String)%20ENGINE%20%3D%20MergeTree%20ORDER%20BY%20id"
-          sleep 1
-
-          # Create verificationToken table
-          curl -X POST "http://localhost:28123/?query=CREATE%20TABLE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test.verificationToken%20(identifier%20String%2C%20expires%20DateTime64(3)%2C%20token%20String)%20ENGINE%20%3D%20MergeTree%20ORDER%20BY%20(identifier%2C%20token)"
-          sleep 1
-
-          # Verify tables were created
-          echo "Verifying tables..."
-          curl -X POST "http://localhost:28123/?query=SHOW%20TABLES%20FROM%20adapter_clickhouse_test%20FORMAT%20JSONEachRow"
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https ca-certificates dirmngr wget
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv E0C56BD4
+          echo "deb https://packages.clickhouse.com/deb/stable/ main/" | sudo tee /etc/apt/sources.list.d/clickhouse.list
+          sudo apt-get update
+          sudo apt-get install -y clickhouse-client
 
       - name: Run tests
         run: pnpm test
