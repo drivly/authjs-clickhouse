@@ -7,6 +7,15 @@ set -o pipefail  # Prevent errors in a pipeline from being masked
 CLICKHOUSE_HOST=localhost
 CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-28123}
 
+# Function to check if ClickHouse is ready
+check_clickhouse() {
+  if [ -z "$GITHUB_ACTIONS" ]; then
+    docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1
+  else
+    curl --silent --head http://localhost:${CLICKHOUSE_PORT}/ping | grep -q "200 OK"
+  fi
+}
+
 # Function to apply schema using ClickHouse client
 apply_schema() {
   local schema_file=$1
@@ -15,7 +24,7 @@ apply_schema() {
     docker cp "$schema_file" authjs-clickhouse-test:/tmp/schema.clickhouse.sql
     docker exec authjs-clickhouse-test clickhouse-client --multiquery --queries-file /tmp/schema.clickhouse.sql
   else
-    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --multiquery < "${schema_file}"
+    curl -X POST http://localhost:${CLICKHOUSE_PORT} --data-binary @"${schema_file}"
   fi
 }
 
@@ -27,43 +36,20 @@ if [ -z "$GITHUB_ACTIONS" ]; then
   # Not running in GitHub Actions, start ClickHouse container
   echo "Starting ClickHouse container..."
   container_id=$(docker run -d --name authjs-clickhouse-test -p 28123:8123 -p 29000:9000 clickhouse/clickhouse-server:latest)
-
-  # Wait for ClickHouse to initialize
-  echo "Waiting for ClickHouse to initialize..."
-  for i in {1..30}; do
-    echo "Waiting for ClickHouse to become ready... ($i/30)"
-    if docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1; then
-      echo "ClickHouse is ready!"
-      break
-    fi
-    if [ $i -eq 30 ]; then
-      echo "ClickHouse failed to initialize"
-      exit 1
-    fi
-    sleep 1
-  done
 fi
 
-# Wait for ClickHouse to be ready (both local and CI)
+# Wait for ClickHouse to be ready
 echo "Waiting for ClickHouse to be ready..."
 for i in {1..30}; do
-  if [ -z "$GITHUB_ACTIONS" ]; then
-    if docker exec authjs-clickhouse-test clickhouse-client --query "SELECT 1" >/dev/null 2>&1; then
-      echo "ClickHouse is ready!"
-      break
-    fi
-  else
-    if clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query "SELECT 1" >/dev/null 2>&1; then
-      echo "ClickHouse is ready!"
-      break
-    fi
+  echo "Waiting for ClickHouse to become ready... ($i/30)"
+  if check_clickhouse; then
+    echo "ClickHouse is ready!"
+    break
   fi
-  
   if [ $i -eq 30 ]; then
     echo "ClickHouse failed to initialize"
     exit 1
   fi
-  echo "Waiting for ClickHouse to become ready... ($i/30)"
   sleep 1
 done
 
@@ -76,8 +62,8 @@ if [ -z "$GITHUB_ACTIONS" ]; then
   docker exec authjs-clickhouse-test clickhouse-client --query "SHOW DATABASES"
   docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 else
-  clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query "SHOW DATABASES"
-  clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query "USE adapter_clickhouse_test; SHOW TABLES"
+  curl -s http://localhost:${CLICKHOUSE_PORT} --data-binary "SHOW DATABASES"
+  curl -s http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary "SHOW TABLES"
 fi
 
 # Run tests
