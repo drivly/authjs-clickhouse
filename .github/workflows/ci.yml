@@ -16,7 +16,7 @@ jobs:
           - 28123:8123
           - 29000:9000
         options: >-
-          --health-cmd="curl -s http://localhost:8123/ping | grep Ok"
+          --health-cmd="clickhouse-client --query 'SELECT 1'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
