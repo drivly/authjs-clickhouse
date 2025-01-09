@@ -24,7 +24,11 @@ apply_schema() {
     docker cp "$schema_file" authjs-clickhouse-test:/tmp/schema.clickhouse.sql
     docker exec authjs-clickhouse-test clickhouse-client --multiquery --queries-file /tmp/schema.clickhouse.sql
   else
-    curl -X POST http://localhost:${CLICKHOUSE_PORT} --data-binary @"${schema_file}"
+    # Create database first
+    curl -X POST http://localhost:${CLICKHOUSE_PORT} --data-binary "CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+    
+    # Then apply schema to the database
+    curl -X POST http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary @"${schema_file}"
   fi
 }
 
@@ -62,8 +66,10 @@ if [ -z "$GITHUB_ACTIONS" ]; then
   docker exec authjs-clickhouse-test clickhouse-client --query "SHOW DATABASES"
   docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 else
-  curl -s http://localhost:${CLICKHOUSE_PORT} --data-binary "SHOW DATABASES"
-  curl -s http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary "SHOW TABLES"
+  # Use format=JSONEachRow for better output parsing
+  curl -s http://localhost:${CLICKHOUSE_PORT} --data-binary "SHOW DATABASES FORMAT JSONEachRow"
+  echo ""
+  curl -s http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test --data-binary "SHOW TABLES FORMAT JSONEachRow"
 fi
 
 # Run tests

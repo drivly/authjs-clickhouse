@@ -59,17 +59,21 @@ jobs:
         run: |
           # Create database
           curl -X POST http://localhost:28123 --data-binary "CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+          sleep 1
 
-          # Create verificationToken table
+          # Create users table
           curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
-          CREATE TABLE IF NOT EXISTS verificationToken
+          CREATE TABLE IF NOT EXISTS users
           (
-            identifier String,
-            expires DateTime64(3),
-            token String
+            id String,
+            name String,
+            email String,
+            emailVerified Nullable(DateTime64(3)),
+            image Nullable(String)
           )
           ENGINE = MergeTree
-          ORDER BY (identifier, token)"
+          ORDER BY id"
+          sleep 1
 
           # Create accounts table
           curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
@@ -90,6 +94,7 @@ jobs:
           )
           ENGINE = MergeTree
           ORDER BY id"
+          sleep 1
 
           # Create sessions table
           curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
@@ -102,19 +107,23 @@ jobs:
           )
           ENGINE = MergeTree
           ORDER BY id"
+          sleep 1
 
-          # Create users table
+          # Create verificationToken table
           curl -X POST http://localhost:28123/adapter_clickhouse_test --data-binary "
-          CREATE TABLE IF NOT EXISTS users
+          CREATE TABLE IF NOT EXISTS verificationToken
           (
-            id String,
-            name String,
-            email String,
-            emailVerified Nullable(DateTime64(3)),
-            image Nullable(String)
+            identifier String,
+            expires DateTime64(3),
+            token String
           )
           ENGINE = MergeTree
-          ORDER BY id"
+          ORDER BY (identifier, token)"
+          sleep 1
+
+          # Verify tables were created
+          echo "Verifying tables..."
+          curl -s http://localhost:28123/adapter_clickhouse_test --data-binary "SHOW TABLES FORMAT JSONEachRow"
 
       - name: Run tests
         run: pnpm test
