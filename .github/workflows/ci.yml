@@ -14,6 +14,12 @@ jobs:
         image: clickhouse/clickhouse-server:latest
         ports:
           - 28123:8123
+          - 29000:9000
+        options: >-
+          --health-cmd="curl -s http://localhost:8123/ping | grep Ok"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +49,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Install ClickHouse client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https ca-certificates dirmngr
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv E0C56BD4
+          echo "deb https://packages.clickhouse.com/deb/stable/ main/" | sudo tee /etc/apt/sources.list.d/clickhouse.list
+          sudo apt-get update
+          sudo apt-get install -y clickhouse-client
 
       - name: Run tests
         run: pnpm test
