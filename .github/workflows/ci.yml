@@ -35,6 +35,21 @@ jobs:
           version: 8
           run_install: false
 
+      - name: Install dependencies and tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          pnpm install
+
+      - name: Install ClickHouse client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https ca-certificates dirmngr wget
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv E0C56BD4
+          echo "deb https://packages.clickhouse.com/deb/stable/ main/" | sudo tee /etc/apt/sources.list.d/clickhouse.list
+          sudo apt-get update
+          sudo apt-get install -y clickhouse-client
+
       - name: Get pnpm store directory
         shell: bash
         run: |
@@ -47,9 +62,6 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install
 
       - name: Wait for ClickHouse
         run: |

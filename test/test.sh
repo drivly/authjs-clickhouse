@@ -27,11 +27,12 @@ apply_schema() {
     docker cp "$schema_file" authjs-clickhouse-test:/tmp/schema.clickhouse.sql
     docker exec authjs-clickhouse-test clickhouse-client --multiquery --queries-file /tmp/schema.clickhouse.sql
   else
-    # Create database first
-    curl -X POST "http://localhost:${CLICKHOUSE_PORT}/?query=CREATE%20DATABASE%20IF%20NOT%20EXISTS%20adapter_clickhouse_test"
-    
-    # Then apply schema to the database
-    curl -X POST "http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test" --data-binary @"${schema_file}"
+    # Use clickhouse-client to apply schema
+    echo "Creating database adapter_clickhouse_test..."
+    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --query="CREATE DATABASE IF NOT EXISTS adapter_clickhouse_test"
+
+    echo "Applying schema to adapter_clickhouse_test..."
+    clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --database=adapter_clickhouse_test --multiquery < "${schema_file}"
   fi
 }
 
@@ -69,10 +70,8 @@ if [ "$GITHUB_ACTIONS" != "true" ]; then
   docker exec authjs-clickhouse-test clickhouse-client --query "SHOW DATABASES"
   docker exec authjs-clickhouse-test clickhouse-client --query "USE adapter_clickhouse_test; SHOW TABLES"
 else
-  # Use format=JSONEachRow for better output parsing
-  curl -s "http://localhost:${CLICKHOUSE_PORT}/?query=SHOW%20DATABASES%20FORMAT%20JSONEachRow"
-  echo ""
-  curl -s "http://localhost:${CLICKHOUSE_PORT}/adapter_clickhouse_test?query=SHOW%20TABLES%20FORMAT%20JSONEachRow"
+  # Use clickhouse-client to verify tables
+  clickhouse-client --host=${CLICKHOUSE_HOST} --port=${CLICKHOUSE_PORT} --database=adapter_clickhouse_test --query="SHOW TABLES FORMAT JSONEachRow"
 fi
 
 # Run tests
